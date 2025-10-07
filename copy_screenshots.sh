@@ -24,8 +24,17 @@ ls -la "$SCREENSHOTS_DIR"
 echo ""
 echo "🔄 Copying screenshots to docs/screenshots/..."
 
-# Copy all images to the docs/screenshots directory
-cp "$SCREENSHOTS_DIR"/*.{png,jpg,jpeg,PNG,JPG,JPEG} docs/screenshots/ 2>/dev/null
+echo ""
+echo "🔄 Copying screenshots to docs/screenshots/..."
+
+# Copy all images from subdirectories to the docs/screenshots directory
+find "$SCREENSHOTS_DIR" -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.PNG" -o -name "*.JPG" -o -name "*.JPEG" | while read file; do
+    filename=$(basename "$file")
+    # Create a cleaner filename
+    clean_name=$(echo "$filename" | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
+    cp "$file" "docs/screenshots/$clean_name"
+    echo "📸 Copied: $filename -> $clean_name"
+done
 
 if [ $? -eq 0 ]; then
     echo "✅ Screenshots copied successfully!"
@@ -36,10 +45,25 @@ if [ $? -eq 0 ]; then
     echo ""
     echo "📝 Next steps:"
     echo "1. Review the copied screenshots"
-    echo "2. Rename files if needed to match the naming convention"
+    echo "2. Rename files if needed to match the naming convention:"
+    echo "   - dashboard-overview.png"
+    echo "   - ios-app-home.png" 
+    echo "   - object-detection-demo.png"
+    echo "   - face-recognition-demo.png"
+    echo "   - system-configuration.png"
+    echo "   - push-notification.png"
     echo "3. Run: git add docs/screenshots/"
-    echo "4. Run: git commit -m 'Add project screenshots and demos'"
+    echo "4. Run: git commit -m '📸 Add project screenshots and live demos'"
     echo "5. Run: git push origin main"
+    
+    echo ""
+    echo "🎯 Pro Tip: The README.md already references these image names:"
+    echo "- docs/screenshots/dashboard-overview.png"
+    echo "- docs/screenshots/ios-app-home.png"
+    echo "- docs/screenshots/object-detection-demo.png"
+    echo "- docs/screenshots/face-recognition-demo.png"
+    echo "- docs/screenshots/system-configuration.png"
+    echo "- docs/screenshots/push-notification.png"
     
 else
     echo "❌ No image files found or copy failed"
@@ -47,9 +71,4 @@ else
 fi
 
 echo ""
-echo "🎯 Naming Convention Examples:"
-echo "- dashboard-overview.png"
-echo "- ios-app-home.png"
-echo "- object-detection-demo.png"
-echo "- face-recognition-demo.png"
-echo "- system-configuration.png"
+echo "🌟 Your open-source project will look amazing with these screenshots!"
