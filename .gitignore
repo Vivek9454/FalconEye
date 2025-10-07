@@ -1,0 +1,144 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Sensitive Configuration Files
+config.py
+firebase-service-account.json
+*.key
+*.pem
+*.crt
+*.p12
+*.mobileprovision
+
+# Cloudflare Tunnel
+cloudflared
+tunnel.json
+*.cert.pem
+
+# YOLO Models (large files)
+*.pt
+yolov*.pt
+
+# Clips and Media
+clips/
+faces/
+*.mp4
+*.avi
+*.mov
+*.jpg
+*.jpeg
+*.png
+*.gif
+test_image.jpg
+esp32_*.jpg
+
+# iOS
+ios/**/build/
+ios/**/.build/
+ios/**/DerivedData/
+ios/**/*.xcarchive
+ios/**/*.ipa
+ios/**/*.dSYM.zip
+ios/**/*.dSYM
+ios/**/xcuserdata/
+ios/**/*.xcworkspace/xcuserdata/
+ios/**/*.xcworkspacedata
+ios/**/UserInterfaceState.xcuserstate
+ios/**/project.xcworkspace/xcuserdata/
+ios/**/.swiftpm/xcode/package.xcworkspace/xcuserdata/
+ios/**/Pods/
+ios/**/Podfile.lock
+
+# Logs
+*.log
+backend_run.log
+error.log
+debug.log
+
+# Runtime files
+*.pid
+*.sock
+
+# Backup files
+*.bak
+*.backup
+backend.py.bak
+*.yml.bak
+backend_backup.py
+backend_clean.py
+
+# Temporary files
+*.tmp
+*.temp
+cookies.txt
+
+# Test files (optional - you might want to keep some)
+test_*.py
+debug_*.py
+
+# Node modules (if any)
+node_modules/
+
+# Environment variables
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# Certificates and keys
+*.p8
+*.cer
+*.certSigningRequest

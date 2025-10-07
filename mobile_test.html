@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FalconEye Mobile Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body { font-family: Arial, sans-serif; background: #111; color: #eee; margin: 0; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; background: #222; border-radius: 8px; }
+        .test-button { padding: 10px 20px; background: #0f9d58; color: white; border: none; border-radius: 5px; margin: 5px; }
+        .result { margin-top: 10px; padding: 10px; background: #333; border-radius: 5px; font-family: monospace; }
+        img { max-width: 100%; height: auto; border: 2px solid #444; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>📱 FalconEye Mobile Optimization Test</h1>
+    
+    <div class="test-section">
+        <h3>🔧 Mobile API Tests</h3>
+        <button class="test-button" onclick="testMobileStatus()">Test Mobile Status</button>
+        <button class="test-button" onclick="testClipsSummary()">Test Clips Summary</button>
+        <button class="test-button" onclick="testCameraInfo()">Test Camera Info</button>
+        <div id="api-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📹 Mobile Video Stream Test</h3>
+        <p>Testing mobile-optimized live stream (should be 640px max width, 70% quality):</p>
+        <img id="live-stream" src="http://localhost:3000/camera/live/cam1" alt="Live Stream" />
+        <div id="stream-info" class="result">Stream loading...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📸 Mobile Snapshot Test</h3>
+        <button class="test-button" onclick="testSnapshot()">Take Snapshot</button>
+        <img id="snapshot" src="" alt="Snapshot" style="display: none;" />
+    </div>
+
+    <script>
+        async function testMobileStatus() {
+            try {
+                const response = await fetch('http://localhost:3000/mobile/status');
+                const data = await response.json();
+                document.getElementById('api-result').innerHTML = 
+                    '<strong>Mobile Status:</strong><br>' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('api-result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testClipsSummary() {
+            try {
+                const response = await fetch('http://localhost:3000/mobile/clips/summary');
+                const data = await response.json();
+                document.getElementById('api-result').innerHTML = 
+                    '<strong>Clips Summary:</strong><br>' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('api-result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testCameraInfo() {
+            try {
+                const response = await fetch('http://localhost:3000/mobile/camera/info');
+                const data = await response.json();
+                document.getElementById('api-result').innerHTML = 
+                    '<strong>Camera Info:</strong><br>' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('api-result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+        
+        function testSnapshot() {
+            const img = document.getElementById('snapshot');
+            img.src = 'http://localhost:3000/camera/snapshot/cam1?t=' + new Date().getTime();
+            img.style.display = 'block';
+        }
+        
+        // Monitor stream loading
+        document.getElementById('live-stream').onload = function() {
+            document.getElementById('stream-info').innerHTML = 
+                '✅ Mobile stream loaded successfully!<br>' +
+                '📱 Optimized for mobile devices<br>' +
+                '📏 Max width: 640px<br>' +
+                '🎨 Quality: 70%<br>' +
+                '⚡ FPS: ~3.3 (mobile optimized)';
+        };
+        
+        document.getElementById('live-stream').onerror = function() {
+            document.getElementById('stream-info').innerHTML = '❌ Stream failed to load';
+        };
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

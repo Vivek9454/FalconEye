@@ -1,0 +1,7 @@
+tunnel: test-tunnel
+credentials-file: /Users/vpaul/.cloudflared/1523e48f-4f48-42d2-a60f-c6d5bb8cd3f0.json
+
+ingress:
+  - hostname: cam.falconeye.website
+    service: http://localhost:3000
+  - service: http_status:404

@@ -1,0 +1,23 @@
+// FalconEye Configuration
+PRODUCT_NAME = FalconEye
+PRODUCT_BUNDLE_IDENTIFIER = com.falconeye.security
+MARKETING_VERSION = 1.0.0
+CURRENT_PROJECT_VERSION = 1
+TARGETED_DEVICE_FAMILY = 1,2
+SUPPORTED_PLATFORMS = iphoneos iphonesimulator
+IPHONEOS_DEPLOYMENT_TARGET = 17.0
+SUPPORTS_MACCATALYST = NO
+INFOPLIST_KEY_UIApplicationSupportsMultipleScenes = YES
+INFOPLIST_KEY_UILaunchScreen_Generation = YES
+INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+INFOPLIST_KEY_NSCameraUsageDescription = FalconEye needs camera access to view live security feeds and take snapshots.
+INFOPLIST_KEY_NSMicrophoneUsageDescription = FalconEye needs microphone access for video recording features.
+INFOPLIST_KEY_NSPhotoLibraryUsageDescription = FalconEye needs photo library access to save security clips and snapshots.
+INFOPLIST_KEY_UIBackgroundModes = background-processing remote-notification
+INFOPLIST_KEY_NSAppTransportSecurity = {"NSAllowsArbitraryLoads":true,"NSExceptionDomains":{"localhost":{"NSExceptionAllowsInsecureHTTPLoads":true}}}
+INFOPLIST_KEY_NSLocalNetworkUsageDescription = FalconEye discovers and connects to the local FalconEye server
+INFOPLIST_KEY_NSBonjourServices = ["_falconeye._tcp"]
+INFOPLIST_KEY_CFBundleDisplayName = FalconEye
+INFOPLIST_KEY_CFBundleShortVersionString = 1.0.0
+INFOPLIST_KEY_CFBundleVersion = 1

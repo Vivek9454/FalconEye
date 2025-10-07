@@ -1,0 +1,24 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#17FFA0" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#00B5D8" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#00B5D8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2F3A42"/>
+      <stop offset="100%" stop-color="#0C1318"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="64" fill="#0A1014"/>
+  <g filter="url(#shadow)">
+    <path d="M120 280C140 210 210 150 300 140C360 134 410 150 430 170C360 200 330 260 300 300C260 350 200 380 150 360C130 330 110 315 120 280Z" fill="url(#metal)" stroke="#2A333A" stroke-width="4"/>
+    <circle cx="300" cy="210" r="48" fill="#061316" stroke="#39E6B6" stroke-width="4"/>
+    <circle cx="300" cy="210" r="28" fill="url(#glow)"/>
+    <circle cx="300" cy="210" r="10" fill="#9FFFE3"/>
+    <path d="M240 240C255 225 280 215 320 210" stroke="#34D399" stroke-width="3"/>
+    <path d="M170 300C210 300 245 280 270 255" stroke="#1F2A30" stroke-width="6"/>
+  </g>
+  <text x="50%" y="460" dominant-baseline="middle" text-anchor="middle" fill="#B2FF59" font-family="system-ui, -apple-system, Roboto, Segoe UI" font-size="48" font-weight="600">FALCONEYE</text>
+</svg>
+

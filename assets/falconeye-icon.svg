@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="32" fill="#0f9d58"/>
+  
+  <!-- Falcon Eye Icon -->
+  <g transform="translate(16, 16)">
+    <!-- Eye shape -->
+    <ellipse cx="16" cy="16" rx="14" ry="10" fill="#fff" opacity="0.9"/>
+    <ellipse cx="16" cy="16" rx="10" ry="7" fill="#0f9d58"/>
+    <circle cx="16" cy="16" r="5" fill="#fff"/>
+    <circle cx="16" cy="16" r="2.5" fill="#0f9d58"/>
+    
+    <!-- Falcon wings -->
+    <path d="M4 12 Q12 4 20 12 Q28 4 36 12" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.8"/>
+    <path d="M4 20 Q12 28 20 20 Q28 28 36 20" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.8"/>
+  </g>
+</svg>

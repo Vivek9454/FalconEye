@@ -1,0 +1,53 @@
+# FalconEye Configuration
+# Copy this file to config.py and update with your actual values
+
+# Camera Configuration
+CAMERA_IP = "192.168.1.100"
+
+# AWS S3 Configuration
+AWS_ACCESS_KEY_ID = "your_access_key_here"
+AWS_SECRET_ACCESS_KEY = "your_secret_key_here"
+AWS_REGION = "ap-south-1"
+AWS_BUCKET = "falconeye-clips"
+
+# Firebase Configuration
+FCM_SERVER_KEY = "your_firebase_server_key_here"
+
+# Application Configuration
+FLASK_PORT = 8080
+CLIP_DURATION = 15
+COOLDOWN = 5
+FPS = 10.0
+
+# Authentication
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "password123"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

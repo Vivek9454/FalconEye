@@ -1,0 +1,7 @@
+tunnel: falconeye-permanent-enhanced
+credentials-file: /Users/vpaul/.cloudflared/bc212e8f-87cd-4bf1-80fd-c9269c1bd072.json
+
+ingress:
+  - hostname: cam.falconeye.website
+    service: http://localhost:3000
+  - service: http_status:404

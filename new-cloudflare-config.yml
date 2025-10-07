@@ -1,0 +1,7 @@
+tunnel: falconeye-new
+credentials-file: /Users/vpaul/.cloudflared/80468e8-bebd-4fdd-95fd-2b77bbd78a9d.json
+
+ingress:
+  - hostname: falconeye.website
+    service: http://localhost:3000
+  - service: http_status:404

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="60" rx="12" fill="#0f9d58"/>
+  
+  <!-- Falcon Eye Icon -->
+  <g transform="translate(15, 10)">
+    <!-- Eye shape -->
+    <ellipse cx="20" cy="20" rx="18" ry="12" fill="#fff" opacity="0.9"/>
+    <ellipse cx="20" cy="20" rx="12" ry="8" fill="#0f9d58"/>
+    <circle cx="20" cy="20" r="6" fill="#fff"/>
+    <circle cx="20" cy="20" r="3" fill="#0f9d58"/>
+    
+    <!-- Falcon wings -->
+    <path d="M5 15 Q15 5 25 15 Q35 5 45 15" stroke="#fff" stroke-width="2" fill="none" opacity="0.8"/>
+    <path d="M5 25 Q15 35 25 25 Q35 35 45 25" stroke="#fff" stroke-width="2" fill="none" opacity="0.8"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="70" y="25" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff">
+    FalconEye
+  </text>
+  <text x="70" y="42" font-family="Arial, sans-serif" font-size="12" fill="#fff" opacity="0.8">
+    Security System
+  </text>
+</svg>

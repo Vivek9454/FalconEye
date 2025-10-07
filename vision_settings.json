@@ -1,0 +1,31 @@
+{
+  "show_boxes": true,
+  "show_labels": true,
+  "show_summary": true,
+  "min_area": 5000,
+  "faces": {
+    "enabled": true,
+    "overlay": true,
+    "tolerance": 0.6,
+    "sample_every": 10,
+    "hide_person_if_named": true
+  },
+  "enabled_classes": {
+    "person": true,
+    "car": true,
+    "truck": true,
+    "bicycle": false,
+    "motorcycle": true,
+    "dog": true,
+    "cat": true
+  },
+  "colors": {
+    "person": "#00e676",
+    "car": "#ffc107",
+    "truck": "#ff9800",
+    "bicycle": "#ffffff",
+    "motorcycle": "#00bcd4",
+    "dog": "#9c27b0",
+    "cat": "#e91e63"
+  }
+}

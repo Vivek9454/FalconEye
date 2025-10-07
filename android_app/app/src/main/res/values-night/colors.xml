@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors -->
+    <color name="primary">#4CAF50</color>
+    <color name="primary_dark">#0F9D58</color>
+    <color name="primary_light">#81C784</color>
+    
+    <!-- Secondary Colors -->
+    <color name="secondary">#FF8A65</color>
+    <color name="secondary_dark">#FF6B35</color>
+    <color name="secondary_light">#FFAB91</color>
+    
+    <!-- Background Colors -->
+    <color name="background">#121212</color>
+    <color name="background_dark">#000000</color>
+    <color name="surface">#1E1E1E</color>
+    <color name="surface_dark">#2C2C2C</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_primary_dark">#000000</color>
+    <color name="text_secondary">#B3FFFFFF</color>
+    <color name="text_secondary_dark">#80000000</color>
+    
+    <!-- Status Colors -->
+    <color name="success">#66BB6A</color>
+    <color name="warning">#FFB74D</color>
+    <color name="error">#EF5350</color>
+    <color name="info">#42A5F5</color>
+    
+    <!-- Accent Colors -->
+    <color name="accent">#FF80AB</color>
+    <color name="accent_dark">#C2185B</color>
+    
+    <!-- Neutral Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="gray_light">#2C2C2C</color>
+    <color name="gray_medium">#757575</color>
+    <color name="gray_dark">#BDBDBD</color>
+    
+    <!-- Gradient Colors -->
+    <color name="gradient_start">#4CAF50</color>
+    <color name="gradient_end">#81C784</color>
+    
+    <!-- Overlay Colors -->
+    <color name="overlay_light">#80000000</color>
+    <color name="overlay_dark">#80FFFFFF</color>
+</resources>
+
+

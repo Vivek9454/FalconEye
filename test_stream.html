@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MJPEG Stream Test</title>
+</head>
+<body>
+    <h1>Pi Zero MJPEG Stream Test</h1>
+    <img src="http://localhost:3000/camera/live/cam2" 
+         style="width: 640px; height: 480px; border: 2px solid #333;"
+         onload="console.log('Stream loaded successfully')"
+         onerror="console.log('Stream failed to load')"
+         alt="Pi Zero Live Stream">
+    
+    <h2>ESP32 Snapshot Test</h2>
+    <img src="http://localhost:3000/camera/snapshot/cam1" 
+         style="width: 640px; height: 480px; border: 2px solid #333;"
+         onload="console.log('Snapshot loaded successfully')"
+         onerror="console.log('Snapshot failed to load')"
+         alt="ESP32 Snapshot">
+</body>
+</html>

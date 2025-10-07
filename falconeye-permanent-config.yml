@@ -1,0 +1,58 @@
+tunnel: falconeye-permanent-enhanced
+credentials-file: /Users/vpaul/.cloudflared/bc212e8f-87cd-4bf1-80fd-c9269c1bd072.json
+
+# Enhanced configuration with all mobile optimizations
+ingress:
+  - hostname: cam.falconeye.website
+    service: http://localhost:3000
+    originRequest:
+      # Mobile optimization settings
+      httpHostHeader: cam.falconeye.website
+      noTLSVerify: false
+      # Compression for mobile bandwidth
+      compressionQuality: 6
+      # Connection pooling for better performance
+      keepAliveConnections: 10
+      keepAliveTimeout: 30s
+      # Mobile-specific timeouts
+      connectTimeout: 10s
+      tlsTimeout: 10s
+      tcpKeepAlive: 30s
+      # HTTP/2 for better mobile performance
+      http2Origin: true
+      # Caching for static content
+      disableChunkedEncoding: false
+  - service: http_status:404
+
+# Performance optimizations
+retries: 5
+gracePeriod: 30s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
