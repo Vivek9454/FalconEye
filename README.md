@@ -6,6 +6,11 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/Vivek9454/FalconEye/workflows/CI/badge.svg)](https://github.com/Vivek9454/FalconEye/actions)
 
+<div align="center">
+  <img src="docs/screenshots/dashboard-overview.png" alt="FalconEye Dashboard" width="800"/>
+  <p><em>Real-time AI-powered home security system with object detection and face recognition</em></p>
+</div>
+
 A comprehensive, AI-powered home security system with real-time object detection, mobile apps, and cloud integration.
 
 ## ⚡ Quick Start (5-Minute Demo)
@@ -42,6 +47,50 @@ docker run -p 3001:3001 falconeye-demo
 ```
 
 See [Full Installation Guide](#-installation) for detailed setup.
+
+## 📸 Screenshots
+
+### Web Dashboard
+![Dashboard Overview](docs/screenshots/dashboard-overview.png)
+*Main dashboard with live camera feeds and object detection*
+
+![Live Camera Dashboard](docs/screenshots/live-camera-dashboard.jpeg)
+*Real-time camera feed with AI object detection overlays*
+
+![Clips Tab](docs/screenshots/clips-tab-where-you-can-see-all-the-recorded-clips-events-with-canera-namws-and-filtering.jpeg)
+*Recorded security clips organized by date with filtering*
+
+![Object Detection Demo](docs/screenshots/object-detection-demo.png)
+*YOLO object detection in action - detecting person, car, and dog*
+
+![Face Recognition](docs/screenshots/face-recognition-demo.png)
+*Face recognition identifying known individuals*
+
+### iOS App
+![iOS App Home](docs/screenshots/ios-app-home.png)
+*iOS app home screen with modern design*
+
+![iOS Login](docs/screenshots/login-page-on-the-ios-app.jpeg)
+*Secure login interface*
+
+![iOS Settings](docs/screenshots/settings-page-where-it-shows-system-status.jpeg)
+*System status and configuration*
+
+### Notifications
+![Push Notifications](docs/screenshots/push-notification.png)
+*Real-time push notifications for security alerts*
+
+![Notification Examples](docs/screenshots/screenshot-of-push-notifs,-night-intruer-person-lingering-person-etc.jpeg)
+*Various notification types: intruder alerts, person detection, etc.*
+
+### Features Showcase
+![Multi-Camera Detection](docs/screenshots/dashboard-showing-multiple-cameras-along-with-facial-and-object-detection-both-cams-pi-zero-and-esp32.jpeg)
+*Dual camera setup with simultaneous detection*
+
+![System Configuration](docs/screenshots/system-configuration.png)
+*Advanced system configuration and settings*
+
+See [docs/screenshots/](docs/screenshots/) for more screenshots.
 
 ## ✨ Features
 

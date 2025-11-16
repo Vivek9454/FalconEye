@@ -1,72 +1,62 @@
-# Screenshots Documentation
+# FalconEye Screenshots
 
-This directory contains comprehensive screenshots demonstrating the FalconEye surveillance system functionality.
+This directory contains screenshots and demos of the FalconEye security system.
 
-## Screenshot Categories
+## Web Dashboard Screenshots
 
-### 1. System Dashboard
-- `dashboard-overview.png` - Main dashboard showing live camera feeds
-- `detection-real-time.png` - Real-time object detection with bounding boxes
-- `system-status.png` - System health and configuration status
+- `dashboard-overview.png` - Main dashboard overview
+- `live-camera-dashboard.jpeg` - Live camera feed with detection
+- `dashboard-with-facial-detection.jpeg` - Dashboard showing face recognition
+- `dashboard-showing-multiple-cameras-along-with-facial-and-object-detection-both-cams-pi-zero-and-esp32.jpeg` - Multi-camera setup
+- `website_login_page.jpeg` - Web login interface
 
-### 2. Mobile Application
-- `ios-app-home.png` - iOS app home screen with camera grid
-- `ios-app-settings.png` - Settings panel with network configuration
-- `ios-app-faces.png` - Face management interface
-- `android-app-overview.png` - Android app interface comparison
+## Feature Demos
 
-### 3. Detection Results
-- `object-detection-demo.png` - YOLO object detection results
-- `face-recognition-demo.png` - Facial recognition identification
-- `detection-confidence.png` - Detection confidence scores display
-- `multiple-objects.png` - Multiple object detection scenario
+- `object-detection-demo.png` - YOLO object detection demo
+- `face-recognition-demo.png` - Face recognition in action
+- `push-notification.png` - Push notification example
+- `system-configuration.png` - System configuration interface
 
-### 4. Configuration Interfaces
-- `camera-setup.png` - Camera configuration panel
-- `ai-model-settings.png` - AI model parameter tuning
-- `notification-config.png` - Push notification setup
-- `cloud-storage-config.png` - AWS S3 integration settings
+## iOS App Screenshots
 
-### 5. Alert System
-- `push-notification.png` - Mobile push notification example
-- `email-alert.png` - Email notification format
-- `detection-log.png` - Historical detection log interface
+- `ios-app-home.png` - iOS app home screen
+- `login-page-on-the-ios-app.jpeg` - iOS login screen
+- `settings-page-where-it-shows-system-status.jpeg` - Settings page
+- `main-dashboard-where-you-see-device-info-like-if-its-onlinc-or-offline-and-other-stuff.jpeg` - Device status
 
-### 6. Hardware Integration
-- `esp32-cam-setup.png` - ESP32-CAM hardware configuration
-- `raspberry-pi-stream.png` - Raspberry Pi MJPEG stream
-- `hardware-status.png` - IoT device status monitoring
+## Clips & Recordings
 
-### 7. Cloud Integration
-- `cloudflare-tunnel.png` - Cloudflare tunnel configuration
-- `aws-s3-storage.png` - AWS S3 storage integration
-- `firebase-notifications.png` - Firebase FCM setup
+- `clips-tab-where-you-can-see-all-the-recorded-clips-events-with-canera-namws-and-filtering.jpeg` - Clips management
+- `clips-tab-whre-you-can-see-all-clips-and-filter-.jpeg` - Clips with filters
 
-### 8. Performance Metrics
-- `system-performance.png` - CPU/Memory usage graphs
-- `detection-accuracy.png` - AI model accuracy metrics
-- `network-latency.png` - Network performance monitoring
+## Notifications
 
-## Adding Screenshots
+- `screenshot-of-push-notifs,-night-intruer-person-lingering-person-etc.jpeg` - Various notification types
+- `more-notificarions-.jpeg` - Notification examples
 
-To add new screenshots:
+## Settings & Configuration
 
-1. **Capture**: Take high-quality screenshots (minimum 1080p)
-2. **Name**: Use descriptive filenames following the convention above
-3. **Optimize**: Compress images to reasonable file sizes (< 2MB each)
-4. **Document**: Update this README with descriptions
-5. **Commit**: Add to git with appropriate commit messages
+- `settings-page-where-it-shows-vison-management-and-face-management.jpeg` - Vision and face management
+- `settings-page-where-its-at-the-end-the-logout-option.jpeg` - Settings overview
+- `start-of-the-settings-page-where-oyu-see-netwoek-control,-netword-status-and-push-notifications.jpeg` - Network controls
+- `middke-of-the-settings-page.jpeg` - Settings middle section
 
-## Guidelines
+## UI Features
 
-- **Quality**: Use high-resolution screenshots showing clear interface elements
-- **Context**: Include relevant data and realistic usage scenarios
-- **Privacy**: Blur or redact any sensitive information
-- **Consistency**: Maintain consistent UI themes and data across screenshots
-- **Annotations**: Add callouts or highlights for key features where helpful
+- `toggle-to-switch-between-light-mode-and-dark-mode.jpeg` - Dark/light mode toggle
+- `fullscrren-of-pizeocxam.jpeg` - Fullscreen camera view
+- `screenshot-of-pizero-cam-in-full-sxreen-showing-ghe-buttons-and-stuff.jpeg` - Fullscreen with controls
 
-## File Formats
+## Face Recognition
 
-- **Preferred**: PNG for UI screenshots (lossless compression)
-- **Alternative**: JPG for photos of hardware setups
-- **Maximum Size**: 2MB per image to maintain repository performance
+- `face-dataset1.jpeg` - Face dataset example
+- `a-collage-showinf-dog-cat-person-face.jpeg` - Detection collage
+
+## Usage
+
+These screenshots are used in:
+- README.md - Main project documentation
+- Project presentations
+- Documentation and reports
+- GitHub repository showcase
+
