@@ -6,13 +6,28 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/Vivek9454/FalconEye/workflows/CI/badge.svg)](https://github.com/Vivek9454/FalconEye/actions)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
+[![Code Style](https://img.shields.io/badge/Code%20Style-PEP%208-blue.svg)](https://www.python.org/dev/peps/pep-0008/)
 
 <div align="center">
   <img src="f_dark.png" alt="FalconEye Logo" width="200"/>
   <h3>Real-time AI-powered home security system with object detection and face recognition</h3>
 </div>
 
-A comprehensive, AI-powered home security system with real-time object detection, mobile apps, and cloud integration.
+A comprehensive, production-ready home security system featuring real-time AI object detection, face recognition, mobile applications, and cloud integration. Built with modern technologies and best practices for scalability and security.
+
+## Table of Contents
+
+- [Quick Start](#quick-start-5-minute-demo)
+- [Features](#features)
+- [System Architecture](#system-architecture)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [API Documentation](#api-endpoints)
+- [Development](#development)
+- [Security](#security)
+- [Deployment](#production-deployment)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Quick Start (5-Minute Demo)
 
@@ -406,7 +421,18 @@ FalconEye/
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting pull requests.
+
+### Quick Contribution Guide
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes and add tests
+4. Ensure all tests pass (`pytest tests/`)
+5. Commit with clear messages
+6. Push and open a Pull Request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## License
 
