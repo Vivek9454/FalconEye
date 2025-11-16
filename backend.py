@@ -8,6 +8,13 @@ import threading
 import requests
 import numpy as np
 from datetime import datetime, timezone, timedelta
+import concurrent.futures
+import multiprocessing
+from concurrent.futures import TimeoutError as FutureTimeoutError
+try:
+    import faces_worker
+except Exception:
+    faces_worker = None
 from ultralytics import YOLO
 from flask import Flask, request, jsonify, Response, send_from_directory, send_file, render_template_string, redirect, url_for, session
 from flask_cors import CORS
@@ -27,11 +34,6 @@ except Exception:
     face_recognition = None
 # Removed Firebase imports - using local notifications now
 from local_notification_service import notification_service, send_push_notification, send_security_alert, send_test_notification, get_notification_status
-try:
-    from zeroconf import ServiceInfo, Zeroconf
-except Exception:
-    ServiceInfo = None
-    Zeroconf = None
 
 # ---------------- CONFIG ----------------
 # Dynamic Network Profiles: define multiple IP groups; the app will auto-select
@@ -41,18 +43,18 @@ NETWORK_PROFILES = [
     {
         "name": "home",
         "cameras": {
-            "cam1": "http://192.168.31.99/jpg",         # ESP32 snapshot
-            "cam2": "http://192.168.31.253:8081/",     # Pi Zero MJPEG
+            "cam1": "http://10.103.190.6/jpg",         # ESP32 snapshot (update if different IP)
+            "cam2": "http://10.103.190.170:8081/",     # Pi Zero MJPEG
         },
-        "esp_pan_base": "http://192.168.31.75",
+        "esp_pan_base": "http://10.103.190.58",
     },
     {
         "name": "hotspot",
         "cameras": {
-            "cam1": "http://10.34.63.6/jpg",
-            "cam2": "http://10.34.63.170:8081/",
+            "cam1": "http://10.103.190.6/jpg",
+            "cam2": "http://10.103.190.170:8081/",
         },
-        "esp_pan_base": "http://10.34.63.58",
+        "esp_pan_base": "http://10.103.190.58",
     },
 ]
 
@@ -104,13 +106,6 @@ CAMERAS = ACTIVE_PROFILE["cameras"].copy()
 # Pan (PTZ) controller for Pi Zero mount (ESP8266/ESP32 HTTP endpoints)
 # You can override via environment variable ESP_PAN_BASE_URL
 ESP_PAN_BASE_URL = os.getenv("ESP_PAN_BASE_URL", ACTIVE_PROFILE.get("esp_pan_base", "http://192.168.31.75"))
-
-# Network discovery helper for mobile clients
-DISCOVERY_SERVICE_TYPE = "_falconeye._tcp.local."
-DISCOVERY_SERVICE_NAME = f"FalconEye @ {os.uname().nodename}.{DISCOVERY_SERVICE_TYPE}" if hasattr(os, "uname") else f"FalconEye._falconeye._tcp.local."
-DISCOVERY_PORT = int(os.getenv("FALCONEYE_PORT", "3000"))
-zeroconf = None
-zc_service = None
 
 # Test mode - set to True to use test images instead of ESP32
 TEST_MODE = False
@@ -181,7 +176,7 @@ def start_recording_if_idle(camera_id, camera_url, tags, duration):
     return True
 
 # Local Notification Configuration
-registered_tokens = set()  # Keep for backward compatibility
+registered_tokens = set()  # Keep for backward compatibility for ios
 
 # Authentication
 USERS = {
@@ -194,19 +189,45 @@ if not os.path.exists(METADATA_FILE):
     with open(METADATA_FILE, "w") as f:
         json.dump({}, f)
 
+# Limit parallelism to reduce native/BLAS pressure on macOS (helps stability on M-series with limited RAM)
+os.environ.setdefault("OMP_NUM_THREADS", os.environ.get("OMP_NUM_THREADS", "1"))
+os.environ.setdefault("MKL_NUM_THREADS", os.environ.get("MKL_NUM_THREADS", "1"))
+try:
+    # reduce torch thread usage to avoid oversubscription
+    torch.set_num_threads(int(os.environ.get("OMP_NUM_THREADS", "1")))
+    torch.set_num_interop_threads(int(os.environ.get("OMP_NUM_THREADS", "1")))
+except Exception:
+    pass
 # ---------------- Device Selection ----------------
-if torch.cuda.is_available():
+# Allow overriding device via environment variable for stability or testing.
+# Supported values: "cuda", "mps", "cpu". If not set, auto-detect.
+FALCONEYE_DEVICE_OVERRIDE = os.getenv("FALCONEYE_DEVICE", "auto").lower()
+if FALCONEYE_DEVICE_OVERRIDE == "cuda":
     DEVICE = "cuda"
-    GPU_NAME = torch.cuda.get_device_name(0)
-    print(f"[INFO] CUDA available ✅ Using GPU: {GPU_NAME}")
-elif torch.backends.mps.is_available():
-    DEVICE = "mps"  # Apple Metal Performance Shaders for M1/M2
+    GPU_NAME = torch.cuda.get_device_name(0) if torch.cuda.is_available() else None
+    print(f"[INFO] Forcing device -> CUDA (requested). GPU: {GPU_NAME}")
+elif FALCONEYE_DEVICE_OVERRIDE == "mps":
+    DEVICE = "mps"
     GPU_NAME = "Apple Silicon GPU"
-    print(f"[INFO] MPS available ✅ Using Apple Silicon GPU")
-else:
+    print("[INFO] Forcing device -> MPS (requested)")
+elif FALCONEYE_DEVICE_OVERRIDE == "cpu":
     DEVICE = "cpu"
     GPU_NAME = None
-    print("[INFO] No GPU acceleration available ⚠️ Falling back to CPU")
+    print("[INFO] Forcing device -> CPU (requested)")
+else:
+    # auto-detect
+    if torch.cuda.is_available():
+        DEVICE = "cuda"
+        GPU_NAME = torch.cuda.get_device_name(0)
+        print(f"[INFO] CUDA available ✅ Using GPU: {GPU_NAME}")
+    elif torch.backends.mps.is_available():
+        DEVICE = "mps"  # Apple Metal Performance Shaders for M1/M2
+        GPU_NAME = "Apple Silicon GPU"
+        print(f"[INFO] MPS available ✅ Using Apple Silicon GPU")
+    else:
+        DEVICE = "cpu"
+        GPU_NAME = None
+        print("[INFO] No GPU acceleration available ⚠️ Falling back to CPU")
 
 # Load YOLO model
 # Use separate models for general detection vs. live-streaming
@@ -214,8 +235,54 @@ else:
 DETECT_MODEL_NAME = os.getenv("FALCONEYE_DETECT_MODEL", "yolov8s.pt")
 LIVE_MODEL_NAME = os.getenv("FALCONEYE_LIVE_MODEL", "yolov8n.pt")
 
-model = YOLO(DETECT_MODEL_NAME).to(DEVICE)
-live_model = YOLO(LIVE_MODEL_NAME).to(DEVICE)
+def _safe_load_yolo(name: str, device: str):
+    """Try to load YOLO model to the requested device. On failure, fall back to CPU.
+
+    Returns (model, actual_device)
+    """
+    try:
+        print(f"[INFO] Loading model {name} -> {device}")
+        m = YOLO(name)
+        try:
+            m = m.to(device)
+            print(f"[INFO] Model {name} loaded on {device}")
+            return m, device
+        except Exception as e:
+            print(f"[WARN] moving model {name} to {device} failed: {e}")
+            # attempt CPU fallback
+            try:
+                m = m.to("cpu")
+                print(f"[INFO] Model {name} loaded on cpu (fallback)")
+                return m, "cpu"
+            except Exception as e2:
+                print(f"[ERROR] Failed to load model {name} on CPU as fallback: {e2}")
+                raise
+    except Exception as e:
+        print(f"[ERROR] Failed to initialize YOLO model {name}: {e}")
+        raise
+
+# Load models with safe fallback to CPU if needed
+try:
+    model, _actual = _safe_load_yolo(DETECT_MODEL_NAME, DEVICE)
+    # If we had to fall back to CPU, update DEVICE to reflect actual runtime
+    if _actual != DEVICE:
+        print(f"[WARN] Device fallback: requested {DEVICE} but using {_actual}")
+        DEVICE = _actual
+except Exception:
+    print("[ERROR] Unable to load detect model. Exiting.")
+    raise
+
+try:
+    live_model, _ = _safe_load_yolo(LIVE_MODEL_NAME, DEVICE)
+except Exception:
+    print("[ERROR] Unable to load live model. Exiting.")
+    raise
+
+# ---------------- Face recognition toggle ----------------
+# Allow disabling face_recognition (dlib) to keep live stream lightweight.
+DISABLE_FACE_RECOGNITION = os.getenv("FALCONEYE_DISABLE_FACE_RECOGNITION", "false").lower() in ("1", "true", "yes")
+if DISABLE_FACE_RECOGNITION:
+    print("[INFO] Face recognition disabled via FALCONEYE_DISABLE_FACE_RECOGNITION")
 
 # Setup AWS S3 client (only if credentials are available)
 try:
@@ -244,8 +311,35 @@ else:
     print("[S3] AWS credentials not configured ⚠️ S3 uploads disabled")
 
 app = Flask(__name__)
+
+# Security Configuration
 # Secret key for session-based auth (override via env FALCONEYE_SECRET)
-app.secret_key = os.environ.get("FALCONEYE_SECRET", "dev-secret-change-me")
+_secret_key = os.environ.get("FALCONEYE_SECRET")
+if not _secret_key or _secret_key == "dev-secret-change-me":
+    import secrets
+    _secret_key = secrets.token_hex(32)
+    if os.environ.get("FALCONEYE_SECRET") != "dev-secret-change-me":
+        print("[WARNING] Using generated secret key. Set FALCONEYE_SECRET env var for production!")
+app.secret_key = _secret_key
+
+# Session configuration
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'  # HTTPS only in production
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent XSS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)  # Default session timeout
+
+# Security headers middleware
+@app.after_request
+def set_security_headers(response):
+    """Add security headers to all responses"""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    # Only add HSTS in production with HTTPS
+    if os.environ.get('FLASK_ENV') == 'production':
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
 
 # Simple login-required decorator
 def login_required(view_func):
@@ -384,6 +478,29 @@ FACES_DB_PATH = os.path.join("faces", "faces_db.json")
 face_encodings_db = {}
 # Runtime safety flag: if face engine misbehaves, disable faces for this session
 FACES_RUNTIME_DISABLED = False
+# ProcessPoolExecutor used to isolate face-recognition work from the main process
+_FR_EXECUTOR = None
+_FR_EXECUTOR_LOCK = threading.Lock()
+
+
+def _get_fr_executor():
+    global _FR_EXECUTOR
+    with _FR_EXECUTOR_LOCK:
+        if _FR_EXECUTOR is not None:
+            return _FR_EXECUTOR
+        # Use a single-worker ProcessPoolExecutor to run face encoding in a separate process.
+        try:
+            # On macOS the default start method is 'spawn' which avoids forking issues with libraries.
+            try:
+                multiprocessing.get_start_method()
+            except RuntimeError:
+                multiprocessing.set_start_method('spawn')
+            _FR_EXECUTOR = concurrent.futures.ProcessPoolExecutor(max_workers=1)
+            return _FR_EXECUTOR
+        except Exception as e:
+            print(f"[FACES] Failed to start face-worker executor: {e}")
+            _FR_EXECUTOR = None
+            return None
 
 def load_face_db():
     global face_encodings_db
@@ -408,41 +525,104 @@ def save_face_db():
     except Exception as e:
         print(f"[FACES] Failed to save DB: {e}")
 
-def compute_face_encodings_from_image(image_bgr):
-    global FACES_RUNTIME_DISABLED
-    """Return a list of embedding vectors from a BGR image.
-    Prefers InsightFace if available for higher accuracy; falls back to face_recognition.
+def compute_face_encodings_from_image(image_bgr, timeout: float = 6.0):
+    """Compute face encodings from a BGR image using a separate worker process.
+
+    The worker runs code from `faces_worker.py` which prefers InsightFace then falls back
+    to `face_recognition`. Running this in a separate process isolates native library
+    failures (dlib/libtorch) from the main backend server.
+
+    Returns a list of numpy.float32 vectors.
     """
-    # Skip entirely if faces are disabled
-    try:
-        if FACES_RUNTIME_DISABLED or not VISION_SETTINGS.get('faces', {}).get('enabled', True):
-            return []
-    except Exception:
-        pass
-    # Try InsightFace first
-    try:
-        if insight_available() and insight_encode is not None:
-            encs = insight_encode(image_bgr)
-            if encs:
-                return [np.array(e, dtype=np.float32) for e in encs]
-    except Exception as e:
-        print(f"[FACES] InsightFace encode error: {e}")
-        # Auto-disable for session to preserve stability
-        try:
-            FACES_RUNTIME_DISABLED = True
-            print("[FACES] Auto-disabling face recognition for this session due to errors.")
-        except Exception:
-            pass
-    # Fallback to face_recognition
-    if face_recognition is None:
+    global FACES_RUNTIME_DISABLED
+    if FACES_RUNTIME_DISABLED:
         return []
     try:
-        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-        boxes = face_recognition.face_locations(image_rgb, model="hog")
-        encs = face_recognition.face_encodings(image_rgb, boxes)
-        return [np.array(e, dtype=np.float32) for e in encs]
+        if not VISION_SETTINGS.get('faces', {}).get('enabled', True):
+            return []
+    except Exception:
+        return []
+
+    # If the user or startup explicitly disabled face recognition, skip
+    if DISABLE_FACE_RECOGNITION:
+        return []
+
+    # Ensure worker module is available
+    if faces_worker is None:
+        # No isolation worker available; fall back to in-process (best-effort)
+        try:
+            if insight_available() and insight_encode is not None:
+                encs = insight_encode(image_bgr)
+                if encs:
+                    return [np.array(e, dtype=np.float32) for e in encs]
+        except Exception as e:
+            print(f"[FACES] InsightFace encode error (no worker): {e}")
+            FACES_RUNTIME_DISABLED = True
+            return []
+        if face_recognition is None:
+            return []
+        try:
+            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+            boxes = face_recognition.face_locations(image_rgb, model="hog")
+            encs = face_recognition.face_encodings(image_rgb, boxes)
+            return [np.array(e, dtype=np.float32) for e in encs]
+        except Exception as e:
+            print(f"[FACES] Encoding error (no worker): {e}")
+            FACES_RUNTIME_DISABLED = True
+            return []
+
+    # Use the process-isolated worker
+    executor = _get_fr_executor()
+    if executor is None:
+        # If we couldn't start the worker, fallback to in-process once
+        print("[FACES] Worker executor not available; falling back to in-process encoding once.")
+        try:
+            if insight_available() and insight_encode is not None:
+                encs = insight_encode(image_bgr)
+                if encs:
+                    return [np.array(e, dtype=np.float32) for e in encs]
+        except Exception as e:
+            print(f"[FACES] InsightFace encode error (fallback): {e}")
+            FACES_RUNTIME_DISABLED = True
+            return []
+        try:
+            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+            boxes = face_recognition.face_locations(image_rgb, model="hog")
+            encs = face_recognition.face_encodings(image_rgb, boxes)
+            return [np.array(e, dtype=np.float32) for e in encs]
+        except Exception as e:
+            print(f"[FACES] Encoding error (fallback): {e}")
+            FACES_RUNTIME_DISABLED = True
+            return []
+
+    # Submit job to worker
+    try:
+        future = executor.submit(faces_worker.compute_encodings, image_bgr)
+        raw = future.result(timeout=timeout)
+        if not raw:
+            return []
+        # raw is a list of lists (floats)
+        return [np.array(e, dtype=np.float32) for e in raw]
+    except FutureTimeoutError:
+        try:
+            future.cancel()
+        except Exception:
+            pass
+        print("[FACES] Worker timed out during encoding")
+        return []
     except Exception as e:
-        print(f"[FACES] Encoding error: {e}")
+        print(f"[FACES] Worker failed: {e}")
+        # Mark runtime disabled to avoid repeated failures; the executor may be broken
+        try:
+            FACES_RUNTIME_DISABLED = True
+            if _FR_EXECUTOR:
+                try:
+                    _FR_EXECUTOR.shutdown(wait=False)
+                except Exception:
+                    pass
+            _FR_EXECUTOR = None
+        except Exception:
+            pass
         return []
 
 def register_face_encoding(name: str, encoding_vec):
@@ -454,6 +634,8 @@ def register_face_encoding(name: str, encoding_vec):
     return True, "registered"
 
 def recognize_faces_in_frame(frame_bgr, person_boxes_xyxy=None, tolerance=0.6):
+    if DISABLE_FACE_RECOGNITION:
+        return []
     if FACES_RUNTIME_DISABLED or not VISION_SETTINGS.get('faces', {}).get('enabled', True):
         return []
     if not face_encodings_db:
@@ -470,6 +652,11 @@ def recognize_faces_in_frame(frame_bgr, person_boxes_xyxy=None, tolerance=0.6):
                 crop = frame_bgr[y1i:y2i, x1i:x2i]
                 if crop.size == 0:
                     continue
+                # Upscale very small crops to help the encoder
+                h, w = crop.shape[:2]
+                if min(h, w) < 80:
+                    scale = 160.0 / max(1, min(h, w))
+                    crop = cv2.resize(crop, (max(1, int(w*scale)), max(1, int(h*scale))))
                 crop_encs = compute_face_encodings_from_image(crop)
                 enc_to_compare.extend(crop_encs)
         if not enc_to_compare:
@@ -482,6 +669,10 @@ def recognize_faces_in_frame(frame_bgr, person_boxes_xyxy=None, tolerance=0.6):
             enc_vec = np.array(enc, dtype=np.float32).reshape(-1)
             enc_len = enc_vec.shape[0]
             use_fr = (face_recognition is not None and enc_len == 128)
+            # Adaptive threshold: if using cosine distance and default-ish tol, tighten it
+            eff_tol = float(tolerance)
+            if not use_fr and abs(eff_tol - 0.6) < 1e-6:
+                eff_tol = 0.35
             for name, enc_list in face_encodings_db.items():
                 for kenc in enc_list:
                     kvec = np.array(kenc, dtype=np.float32).reshape(-1)
@@ -498,8 +689,9 @@ def recognize_faces_in_frame(frame_bgr, person_boxes_xyxy=None, tolerance=0.6):
                     if dist < best_dist:
                         best_dist = dist
                         best_name = name
-            if best_name is not None and best_dist <= float(tolerance):
+            if best_name is not None and best_dist <= eff_tol:
                 recognized.append(best_name)
+                print(f"[FACES] Recognized {best_name} with distance {best_dist:.3f} (tolerance: {eff_tol:.3f})")
         # Deduplicate while preserving order
         seen = set()
         ordered = []
@@ -517,6 +709,8 @@ def recognize_faces_for_boxes(frame_bgr, person_boxes_xyxy, tolerance=0.6):
     person_boxes_xyxy: list of (x1,y1,x2,y2) in frame coords.
     """
     mapping = {}
+    if DISABLE_FACE_RECOGNITION:
+        return mapping
     if FACES_RUNTIME_DISABLED or not VISION_SETTINGS.get('faces', {}).get('enabled', True):
         return mapping
     if not face_encodings_db or not person_boxes_xyxy:
@@ -560,6 +754,9 @@ def recognize_faces_for_boxes(frame_bgr, person_boxes_xyxy, tolerance=0.6):
                         best_name = name
             if best_name is not None and best_dist <= eff_tol:
                 mapping[idx] = best_name
+                print(f"[FACES] Box {idx}: Recognized {best_name} with distance {best_dist:.3f} (tolerance: {eff_tol:.3f})")
+            elif best_name is not None:
+                print(f"[FACES] Box {idx}: {best_name} distance {best_dist:.3f} exceeds tolerance {eff_tol:.3f}")
         return mapping
     except Exception as e:
         print(f"[FACES] Box recognition error: {e}")
@@ -774,7 +971,8 @@ def gen_mjpeg_live_stream(cam_id, is_mobile):
                         if frame is not None:
                             # Fast path: optional lightweight mode (skip heavy detection most frames)
                             mode = request.args.get('mode', 'full') if request else 'full'
-                            detect_every = int(request.args.get('detect_every', 8)) if request else 8
+                            # Increase default detection interval to reduce CPU/GPU load.
+                            detect_every = int(request.args.get('detect_every', 20)) if request else 20
                             do_detect = (mode == 'full') or ((mode == 'lite') and (frame_count % max(1, detect_every) == 0))
 
                             # Resize for mobile if needed
@@ -1992,6 +2190,20 @@ dashboard_html = """
             white-space: nowrap;
         }
         
+        /* Hide text on smaller screens, show only icons */
+        @media (max-width: 1600px) {
+            .control-btn span {
+                display: none !important;
+            }
+            
+            .control-btn {
+                padding: 8px !important;
+                min-width: 40px !important;
+                justify-content: center !important;
+            }
+        }
+        
+        
         /* Mobile responsive for live page */
         @media (max-width: 768px) {
             .cctv-grid {
@@ -2013,6 +2225,7 @@ dashboard_html = """
             .camera-content {
                 height: 210px !important;
             }
+            
             
             .camera-content img {
                 width: 100% !important;
@@ -2045,11 +2258,13 @@ dashboard_html = """
             }
             
             .control-btn {
-                padding: 6px 8px !important;
+                padding: 6px !important;
                 font-size: 11px !important;
                 min-height: 32px !important;
+                min-width: 32px !important;
                 flex: 1 !important;
                 border-radius: 6px !important;
+                justify-content: center !important;
             }
             
             .control-btn span {
@@ -2092,11 +2307,13 @@ dashboard_html = """
             }
             
             .control-btn {
-                padding: 4px 6px !important;
+                padding: 4px !important;
                 font-size: 9px !important;
                 flex: 1 !important;
                 min-height: 28px !important;
+                min-width: 28px !important;
                 border-radius: 4px !important;
+                justify-content: center !important;
             }
             
             .control-btn span {
@@ -3194,24 +3411,51 @@ dashboard_html = """
                                 <span style="font-size:12px; opacity:0.8;">Pan Controls</span>
                                 <span style="font-size:11px; opacity:0.6;">(cam2)</span>
                             </div>
-                            <button class="control-btn" onclick="panCam('left')" title="Pan Left">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M14 7l-5 5 5 5V7z"/>
-                                </svg>
-                                <span>Left</span>
-                            </button>
-                            <button class="control-btn" onclick="panCam('auto')" title="Patrol Mode">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 4l-1.41 1.41L15.17 10H4v2h11.17l-4.58 4.59L12 18l8-8z"/>
-                                </svg>
-                                <span>Auto</span>
-                            </button>
-                            <button class="control-btn" onclick="panCam('right')" title="Pan Right">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M10 17l5-5-5-5v10z"/>
-                                </svg>
-                                <span>Right</span>
-                            </button>
+             <button class="control-btn" onclick="panCam('left')" title="Pan Left">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                     <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                 </svg>
+                 <span>Left</span>
+             </button>
+             <button class="control-btn" onclick="panCam('auto')" title="Pan Auto Mode">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                     <path d="M8 5v14l11-7z"/>
+                 </svg>
+                 <span>Pan Auto</span>
+             </button>
+             <button class="control-btn" onclick="panCam('right')" title="Pan Right">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                     <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
+                 </svg>
+                 <span>Right</span>
+             </button>
+                            
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:8px 0 6px 0;">
+                                <span style="font-size:12px; opacity:0.8;">Tilt Controls</span>
+                                <span style="font-size:11px; opacity:0.6;">(cam2)</span>
+                            </div>
+             <button class="control-btn" onclick="tiltCam('up')" title="Tilt Up">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                     <path d="M7.41 15.41L12 11l4.59 4.41L18 15l-6-6-6 6 1.41 1.41z"/>
+                 </svg>
+                 <span>Up</span>
+             </button>
+             <button class="control-btn" onclick="tiltCam('auto')" title="Tilt Auto Mode">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                     <path d="M8 5v14l11-7z"/>
+                 </svg>
+                 <span>Tilt Auto</span>
+             </button>
+             <button class="control-btn" onclick="tiltCam('down')" title="Tilt Down">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                     <path d="M7.41 8.41L12 13l4.59-4.59L18 9l-6 6-6-6 1.41-1.41z"/>
+                 </svg>
+                 <span>Down</span>
+             </button>
+                            
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:8px 0 6px 0;">
+                                <span style="font-size:12px; opacity:0.8;">Other Controls</span>
+                            </div>
                             <button class="control-btn" onclick="refreshPiZero()" title="Refresh Stream">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
@@ -3884,6 +4128,19 @@ async function panCam(direction) {
         }
     } catch (e) {
         showToast('Pan command error', 'error');
+    }
+}
+
+async function tiltCam(direction) {
+    try {
+        const res = await fetch('/camera/tilt/' + direction, { method: 'POST' });
+        if (!res.ok) {
+            showToast('Tilt ' + direction + ' failed', 'error');
+        } else {
+            showToast('Tilt ' + direction + ' sent', 'success');
+        }
+    } catch (e) {
+        showToast('Tilt command error', 'error');
     }
 }
 
@@ -5105,10 +5362,14 @@ def login_page():
     error_message = ""
     if request.method == "POST":
         data = request.form or request.json or {}
-        user, pwd = data.get("username"), data.get("password")
+        user = (data.get("username") or "").strip()
+        pwd = data.get("password") or ""
         remember_me = data.get("remember_me", False)
         
-        if user in USERS and check_password_hash(USERS[user], pwd):
+        # Input validation
+        if not user or not pwd:
+            error_message = "Username and password are required."
+        elif user in USERS and check_password_hash(USERS[user], pwd):
             session["user"] = user
             # Set session to persist longer if "Remember Me" is checked
             if remember_me:
@@ -5123,9 +5384,13 @@ def login_page():
                 return jsonify({"status": "ok", "redirect": next_url})
             return redirect(next_url)
         else:
+            # Always show same error message to prevent user enumeration
+            # Use constant-time comparison to prevent timing attacks
+            time.sleep(0.1)  # Small delay to prevent timing attacks
             error_message = "Invalid username or password. Please try again."
+        
         if request.is_json:
-                return jsonify({"status": "error", "message": error_message}), 401
+            return jsonify({"status": "error", "message": error_message}), 401
     # Enhanced modern login form with animations and better UX
     error_html = ""
     if error_message:
@@ -5581,11 +5846,26 @@ def logout_page():
 # ---------------- API Endpoints ----------------
 @app.route("/auth/login", methods=["POST"])
 def login():
-    data = request.json
-    user, pwd = data.get("username"), data.get("password")
+    """API endpoint for mobile app login"""
+    data = request.json or {}
+    user = (data.get("username") or "").strip()
+    pwd = data.get("password") or ""
+    
+    # Input validation
+    if not user or not pwd:
+        return jsonify({"status": "error", "message": "Username and password are required"}), 400
+    
+    # Check credentials with timing attack prevention
     if user in USERS and check_password_hash(USERS[user], pwd):
+        session["user"] = user
+        session.permanent = data.get("remember_me", False)
+        if session.permanent:
+            app.permanent_session_lifetime = timedelta(hours=12)
         return jsonify({"status": "ok", "device": DEVICE})
-    return jsonify({"status": "error"}), 401
+    else:
+        # Prevent timing attacks
+        time.sleep(0.1)
+        return jsonify({"status": "error", "message": "Invalid credentials"}), 401
 
 @app.route("/camera/list")
 def list_cameras():
@@ -5742,7 +6022,8 @@ def live(cam_id):
         faces_overlay_text = ""
         sample_every = int(VISION_SETTINGS.get('faces', {}).get('sample_every', 10) or 10)
         skip_detection = request.args.get('skip_detection') == '1'
-        detect_every = int(request.args.get('detect_every', 4))
+        # Use a higher default detect_every for smoother live streams.
+        detect_every = int(request.args.get('detect_every', 20))
         while True:
             frame = get_frame(camera_url)
             
@@ -5779,16 +6060,20 @@ def live(cam_id):
                     face_names_by_idx = {}
                     if VISION_SETTINGS.get('faces', {}).get('enabled', True):
                         try:
-                            person_boxes = [boxes[i] for i, nm in enumerate(names) if nm == 'person']
-                            tol = float(VISION_SETTINGS.get('faces', {}).get('tolerance', 0.6))
-                            mapping = recognize_faces_for_boxes(frame, person_boxes, tolerance=tol)
-                            # Map back to full index space
-                            pi = 0
-                            for i, nm in enumerate(names):
-                                if nm == 'person':
-                                    if pi in mapping:
-                                        face_names_by_idx[i] = mapping[pi]
-                                    pi += 1
+                            if DISABLE_FACE_RECOGNITION:
+                                # Skip expensive face recognition when disabled
+                                face_names_by_idx = {}
+                            else:
+                                person_boxes = [boxes[i] for i, nm in enumerate(names) if nm == 'person']
+                                tol = float(VISION_SETTINGS.get('faces', {}).get('tolerance', 0.6))
+                                mapping = recognize_faces_for_boxes(frame, person_boxes, tolerance=tol)
+                                # Map back to full index space
+                                pi = 0
+                                for i, nm in enumerate(names):
+                                    if nm == 'person':
+                                        if pi in mapping:
+                                            face_names_by_idx[i] = mapping[pi]
+                                        pi += 1
                         except Exception:
                             face_names_by_idx = {}
                     for i, name in enumerate(names):
@@ -5814,16 +6099,19 @@ def live(cam_id):
                 if results is not None and VISION_SETTINGS.get('faces', {}).get('enabled', True):
                     if frame_count % max(1, sample_every) == 0:
                         try:
-                            person_boxes = []
-                            if results and results[0].boxes is not None:
-                                bxyxy = results[0].boxes.xyxy.cpu().numpy()
-                                cl = results[0].boxes.cls.tolist()
-                                for i, ci in enumerate(cl):
-                                    if model.names[int(ci)] == 'person':
-                                        person_boxes.append(bxyxy[i])
-                            tol = float(VISION_SETTINGS.get('faces', {}).get('tolerance', 0.6))
-                            names = recognize_faces_in_frame(frame, person_boxes, tolerance=tol)
-                            faces_overlay_text = ", ".join(names[:3]) if names else ""
+                            if DISABLE_FACE_RECOGNITION:
+                                faces_overlay_text = ""
+                            else:
+                                person_boxes = []
+                                if results and results[0].boxes is not None:
+                                    bxyxy = results[0].boxes.xyxy.cpu().numpy()
+                                    cl = results[0].boxes.cls.tolist()
+                                    for i, ci in enumerate(cl):
+                                        if model.names[int(ci)] == 'person':
+                                            person_boxes.append(bxyxy[i])
+                                tol = float(VISION_SETTINGS.get('faces', {}).get('tolerance', 0.6))
+                                names = recognize_faces_in_frame(frame, person_boxes, tolerance=tol)
+                                faces_overlay_text = ", ".join(names[:3]) if names else ""
                         except Exception:
                             faces_overlay_text = ""
                 
@@ -5885,19 +6173,20 @@ def live(cam_id):
             time.sleep(max(0.0, sleep_time))
     return Response(gen(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
-# ---------------- Pi Zero Pan Controls (cam2 only) ----------------
+# ---------------- Camera Pan/Tilt Controls (PTZ) ----------------
 @app.route("/camera/pan/<action>", methods=["POST"])  # action: left|right|auto
 def camera_pan(action):
-    """Proxy simple pan commands to the ESP pan controller for Pi Zero mount.
-    Only enabled for cam2 to avoid affecting ESP32 snapshot cam.
+    """Proxy pan commands to the ESP pan/tilt controller.
+    Updated to use new API structure: /move?dir=
     """
-    valid_actions = {"left": "left", "right": "right", "auto": "auto"}
+    # Fix inverted pan directions - swap left/right
+    valid_actions = {"left": "right", "right": "left", "auto": "auto"}
     action = action.lower()
     if action not in valid_actions:
         return jsonify({"status": "error", "message": "Invalid action"}), 400
 
     try:
-        # Forward to ESP pan unit
+        # Forward to ESP pan/tilt unit with new API structure
         target_url = f"{ESP_PAN_BASE_URL}/move?dir={valid_actions[action]}"
         resp = requests.get(target_url, timeout=3)
         ok = 200 <= resp.status_code < 300
@@ -5908,6 +6197,104 @@ def camera_pan(action):
         }), (200 if ok else 502)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 502
+
+@app.route("/camera/tilt/<action>", methods=["POST"])  # action: up|down|auto
+def camera_tilt(action):
+    """Proxy tilt commands to the ESP pan/tilt controller.
+    Updated to use new API structure: /tilt?dir=
+    """
+    # Use directions directly (no swap needed)
+    valid_actions = {"up": "up", "down": "down", "auto": "auto"}
+    action = action.lower()
+    if action not in valid_actions:
+        return jsonify({"status": "error", "message": "Invalid action"}), 400
+
+    try:
+        # Forward to ESP pan/tilt unit with new API structure
+        target_url = f"{ESP_PAN_BASE_URL}/tilt?dir={valid_actions[action]}"
+        resp = requests.get(target_url, timeout=3)
+        ok = 200 <= resp.status_code < 300
+        return jsonify({
+            "status": "success" if ok else "error",
+            "code": resp.status_code,
+            "target": target_url,
+            "direction_sent_to_esp": valid_actions[action],
+            "button_pressed": action
+        }), (200 if ok else 502)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 502
+
+@app.route("/camera/move", methods=["POST"])
+def camera_move():
+    """Combined pan/tilt control endpoint for convenience.
+    Updated to use new API structure: /move?dir= for pan, /tilt?dir= for tilt
+    """
+    try:
+        data = request.json or {}
+        axis = data.get("axis", "").lower()
+        direction = data.get("dir", "").lower()
+        
+        if axis not in ["pan", "tilt"]:
+            return jsonify({"status": "error", "message": "Invalid axis. Use 'pan' or 'tilt'"}), 400
+            
+        if axis == "pan":
+            valid_dirs = {"left": "left", "right": "right", "auto": "auto"}
+            # Forward to ESP pan/tilt unit with new API structure
+            target_url = f"{ESP_PAN_BASE_URL}/move?dir={valid_dirs[direction]}"
+        else:  # tilt - fix inverted directions
+            valid_dirs = {"up": "down", "down": "up", "auto": "auto"}
+            # Forward to ESP pan/tilt unit with new API structure
+            target_url = f"{ESP_PAN_BASE_URL}/tilt?dir={valid_dirs[direction]}"
+            
+        if direction not in valid_dirs:
+            return jsonify({"status": "error", "message": f"Invalid direction for {axis}. Use: {list(valid_dirs.keys())}"}), 400
+
+        resp = requests.get(target_url, timeout=3)
+        ok = 200 <= resp.status_code < 300
+        return jsonify({
+            "status": "success" if ok else "error",
+            "code": resp.status_code,
+            "target": target_url,
+            "axis": axis,
+            "direction": valid_dirs[direction]
+        }), (200 if ok else 502)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 502
+
+@app.route("/camera/controls/status", methods=["GET"])
+def camera_controls_status():
+    """Get status of camera control system."""
+    try:
+        # Test if ESP pan/tilt controller is reachable using new API structure
+        test_url = f"{ESP_PAN_BASE_URL}/move?dir=auto"
+        resp = requests.get(test_url, timeout=2)
+        controller_online = 200 <= resp.status_code < 300
+
+        return jsonify({
+            "status": "success",
+            "controller_online": controller_online,
+            "esp_pan_base_url": ESP_PAN_BASE_URL,
+            "available_controls": {
+                "pan": ["left", "right", "auto"],
+                "tilt": ["up", "down", "auto"]
+            },
+            "endpoints": {
+                "pan": "/camera/pan/<action>",
+                "tilt": "/camera/tilt/<action>",
+                "combined": "/camera/move"
+            },
+            "esp_api_structure": {
+                "pan": "/move?dir=",
+                "tilt": "/tilt?dir="
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "controller_online": False,
+            "esp_pan_base_url": ESP_PAN_BASE_URL,
+            "error": str(e)
+        }), 502
 
 @app.route("/clips")
 def list_clips():
@@ -6294,6 +6681,12 @@ def faces_register():
     if not image_b64:
         return jsonify({"error": "image_base64 required"}), 400
     try:
+        # Check if face recognition is disabled
+        if DISABLE_FACE_RECOGNITION:
+            return jsonify({"error": "Face recognition is disabled. Set FALCONEYE_DISABLE_FACE_RECOGNITION=0 or remove it from environment to enable."}), 400
+        if FACES_RUNTIME_DISABLED:
+            return jsonify({"error": "Face recognition is currently disabled due to runtime errors. Check server logs for details."}), 400
+        
         img_bytes = base64.b64decode(image_b64.split(",")[-1])
         img_arr = np.frombuffer(img_bytes, np.uint8)
         image = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
@@ -6301,7 +6694,7 @@ def faces_register():
             return jsonify({"error": "invalid image"}), 400
         encs = compute_face_encodings_from_image(image)
         if not encs:
-            return jsonify({"error": "no face found"}), 400
+            return jsonify({"error": "no face detected in image. Please ensure the image contains a clear, front-facing face."}), 400
         # Use first face
         ok, msg = register_face_encoding(name, encs[0])
         return jsonify({"success": ok, "message": msg, "name": name, "faces": len(face_encodings_db.get(name, []))})
@@ -6345,29 +6738,10 @@ def faces_delete():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/discover", methods=["GET"])
-def discover():
-    try:
-        base = request.host_url.rstrip('/')
-        return jsonify({
-            "name": DISCOVERY_SERVICE_NAME,
-            "profile": ACTIVE_PROFILE.get("name", "default"),
-            "base_url": base,
-            "endpoints": {
-                "status": f"{base}/system/status",
-                "live_cam1": f"{base}/camera/live/cam1",
-                "live_cam2": f"{base}/camera/live/cam2?mode=lite&detect_every=10",
-                "faces_status": f"{base}/faces/status",
-            },
-            "cameras": CAMERAS,
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 # ---------------- MAIN ----------------
 if __name__ == "__main__":
-    print("🚀 Starting FalconEye on http://localhost:3000")
-    print("📱 Dashboard: http://localhost:3000")
+    print("🚀 Starting FalconEye on http://localhost:3001")
+    print("📱 Dashboard: http://localhost:3001")
     print("🔗 Remote access: https://cam.falconeye.website (when Cloudflare tunnel is running)")
     
     # Start background frame capture
@@ -6382,35 +6756,4 @@ if __name__ == "__main__":
     # Comment out local preview for headless operation
     # threading.Thread(target=local_preview, args=("cam1", CAMERAS["cam1"]), daemon=True).start()
     
-    # Advertise Bonjour/mDNS for local discovery (best effort)
-    if Zeroconf is not None and ServiceInfo is not None:
-        try:
-            zeroconf = Zeroconf()
-            # Provide basic TXT records including active profile
-            txt_records = {
-                "profile": ACTIVE_PROFILE.get("name", "default"),
-                "path": "/system/status",
-            }
-            info = ServiceInfo(
-                type_=DISCOVERY_SERVICE_TYPE,
-                name=DISCOVERY_SERVICE_NAME,
-                port=DISCOVERY_PORT,
-                properties=txt_records,
-                addresses=None,  # let zeroconf determine
-            )
-            zeroconf.register_service(info)
-            zc_service = info
-            print(f"📡 Bonjour advertised: {DISCOVERY_SERVICE_NAME} on port {DISCOVERY_PORT}")
-        except Exception as e:
-            print(f"⚠️  Bonjour advertise failed: {e}")
-
-    try:
-        app.run(host="0.0.0.0", port=DISCOVERY_PORT)
-    finally:
-        if zeroconf and zc_service:
-            try:
-                zeroconf.unregister_service(zc_service)
-                zeroconf.close()
-                print("🛑 Bonjour service stopped")
-            except Exception:
-                pass
+    app.run(host="0.0.0.0", port=3001)
