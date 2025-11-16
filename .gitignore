@@ -30,6 +30,11 @@ env/
 config.py
 firebase_config.json
 firebase-service-account.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig*.json
+!*.config.json
 *.pem
 *.key
 *.crt
