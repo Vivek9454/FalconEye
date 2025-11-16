@@ -285,18 +285,28 @@ if DISABLE_FACE_RECOGNITION:
     print("[INFO] Face recognition disabled via FALCONEYE_DISABLE_FACE_RECOGNITION")
 
 # Setup AWS S3 client (only if credentials are available)
-try:
-    from config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_BUCKET
-    aws_access_key = AWS_ACCESS_KEY_ID
-    aws_secret_key = AWS_SECRET_ACCESS_KEY
-    AWS_REGION = AWS_REGION
-    S3_BUCKET_NAME = AWS_BUCKET
-except ImportError:
-    # Fallback to environment variables
-    aws_access_key = os.getenv('AWS_ACCESS_KEY_ID')
-    aws_secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
-    AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
-    S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME', 'falconeye-clips')
+# SECURITY: Always prefer environment variables over config.py to prevent secrets in repo
+aws_access_key = os.getenv('AWS_ACCESS_KEY_ID')
+aws_secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
+S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME', 'falconeye-clips')
+
+# Fallback to config.py only if env vars not set (for backward compatibility)
+# WARNING: config.py should not be committed to version control!
+if not aws_access_key or not aws_secret_key:
+    try:
+        from config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_BUCKET
+        if not aws_access_key:
+            aws_access_key = AWS_ACCESS_KEY_ID
+        if not aws_secret_key:
+            aws_secret_key = AWS_SECRET_ACCESS_KEY
+        if AWS_REGION == 'us-east-1':  # Only use if default
+            AWS_REGION = AWS_REGION
+        if S3_BUCKET_NAME == 'falconeye-clips':  # Only use if default
+            S3_BUCKET_NAME = AWS_BUCKET
+        print("[WARNING] Using config.py for AWS credentials. Consider migrating to .env file!")
+    except ImportError:
+        pass  # No config.py, that's fine
 
 if aws_access_key and aws_secret_key:
     s3 = boto3.client(

@@ -64,11 +64,29 @@ A comprehensive, AI-powered home security system with real-time object detection
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8 or higher
-- Node.js 18+ (for frontend)
-- ESP32 camera or compatible IP camera
-- AWS account (for S3 storage, optional)
-- Firebase account (for push notifications, optional)
+
+#### System Requirements
+- **Python**: 3.8 or higher (3.11+ recommended)
+- **Node.js**: 18+ (for frontend, optional)
+- **RAM**: Minimum 4GB (8GB+ recommended for GPU)
+- **Storage**: ~5GB free space (for models and clips)
+- **Camera**: ESP32 camera or compatible IP camera
+- **GPU** (optional but recommended):
+  - NVIDIA GPU with CUDA support (for faster inference)
+  - Apple Silicon (M1/M2/M3) with MPS support
+  - CPU mode available but slower
+
+#### Hardware Requirements by Model
+
+| Model | Size | RAM (CPU) | RAM (GPU) | Inference Time (CPU) | Inference Time (GPU) |
+|-------|------|-----------|-----------|---------------------|---------------------|
+| yolov8n.pt | 6MB | 2GB | 1GB | ~100ms | ~10ms |
+| yolov8s.pt | 22MB | 4GB | 2GB | ~200ms | ~15ms |
+| yolov8m.pt | 52MB | 6GB | 3GB | ~400ms | ~25ms |
+| yolov8l.pt | 87MB | 8GB | 4GB | ~600ms | ~40ms |
+| yolov8x.pt | 136MB | 12GB | 6GB | ~800ms | ~60ms |
+
+**Recommended**: `yolov8s.pt` for detection, `yolov8n.pt` for live stream
 
 ### Installation
 
@@ -82,39 +100,82 @@ A comprehensive, AI-powered home security system with real-time object detection
    ```bash
    python3 -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
-3. **Configure environment variables**
-   ```bash
-   # Copy example config
-   cp config.example .env
+3. **Download AI Models**
    
-   # Edit .env with your settings:
-   # - Camera IPs
-   # - AWS credentials (optional)
-   # - Firebase credentials (optional)
+   Models are automatically downloaded on first run, but you can pre-download them:
+   
+   ```bash
+   # Download recommended models
+   wget https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8s.pt -O yolov8s.pt
+   wget https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n.pt -O yolov8n.pt
    ```
+   
+   **Model Sizes**:
+   - `yolov8n.pt`: ~6MB (nano - fastest, least accurate)
+   - `yolov8s.pt`: ~22MB (small - recommended)
+   - `yolov8m.pt`: ~52MB (medium)
+   - `yolov8l.pt`: ~87MB (large)
+   - `yolov8x.pt`: ~136MB (extra large - most accurate)
+   
+   Models are stored in the project root and automatically loaded.
 
-4. **Set up frontend (optional)**
+4. **Configure environment variables**
+   ```bash
+   # Copy example environment file
+   cp .env.example .env
+   
+   # Edit .env with your settings
+   nano .env  # or use your preferred editor
+   ```
+   
+   **Required settings**:
+   ```bash
+   FALCONEYE_SECRET=your-secure-secret-key-here
+   CAM1_URL=http://your-camera-ip/jpg
+   ```
+   
+   **Optional settings**:
+   - AWS credentials for S3 storage
+   - Firebase credentials for push notifications
+   - Model selection (defaults to yolov8s.pt)
+
+5. **Set up frontend (optional)**
    ```bash
    cd falconeye-react-frontend
    npm install
    npm run build
    ```
 
-5. **Start the backend**
+6. **Start the backend**
    ```bash
    # Option 1: Enhanced startup (recommended)
    ./start_enhanced.sh
    
    # Option 2: Manual startup
    python backend.py
+   
+   # Option 3: Using Docker (see Docker section)
+   docker-compose up
    ```
 
-6. **Access the dashboard**
-   - Local: http://localhost:3000
+7. **Access the dashboard**
+   - Local: http://localhost:3001
    - Cloud: https://cam.falconeye.website (if tunnel configured)
+
+### First Run
+
+On first startup, the system will:
+1. ✅ Download YOLO models automatically (if not present)
+2. ✅ Detect available GPU/CPU device
+3. ✅ Test camera connectivity
+4. ✅ Initialize face recognition (if enabled)
+5. ✅ Start background detection loop
+
+**Expected startup time**: 30-60 seconds (depending on model download and device)
 
 ## 📖 Configuration
 
@@ -225,6 +286,11 @@ FalconEye/
 - **HTTPS**: All communications encrypted via Cloudflare tunnel
 - **Session Management**: Secure session handling with configurable timeouts
 - **Password Security**: bcrypt password hashing
+- **Security Headers**: Comprehensive security headers (XSS, clickjacking protection)
+- **Input Validation**: All user inputs validated and sanitized
+- **Secrets Management**: Environment variables for all sensitive data
+
+**⚠️ Important**: Never commit `config.py`, `.env`, or `firebase_config.json` to version control. See [SECURITY.md](SECURITY.md) for details.
 
 ## 📊 Performance
 
@@ -248,14 +314,145 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [OpenCV](https://opencv.org/) for computer vision
 - [Cloudflare](https://www.cloudflare.com/) for tunnel service
 
+## 🐳 Docker Deployment
+
+### Quick Start with Docker
+
+```bash
+# Build and run
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+### Docker Configuration
+
+Edit `docker-compose.yml` to customize:
+- Port mappings
+- Environment variables
+- Volume mounts
+- GPU support (uncomment GPU section for NVIDIA)
+
+### Production Docker Build
+
+```bash
+# Build production image
+docker build --target production -t falconeye:latest .
+
+# Run with environment variables
+docker run -d \
+  -p 3001:3001 \
+  --env-file .env \
+  -v $(pwd)/clips:/app/clips \
+  falconeye:latest
+```
+
+## 🚀 Production Deployment
+
+### Using Gunicorn (Recommended)
+
+```bash
+# Install Gunicorn
+pip install gunicorn
+
+# Run with Gunicorn
+gunicorn -w 4 -b 0.0.0.0:3001 --timeout 120 --access-logfile - backend:app
+```
+
+### Using Systemd (Linux)
+
+Create `/etc/systemd/system/falconeye.service`:
+
+```ini
+[Unit]
+Description=FalconEye Security System
+After=network.target
+
+[Service]
+Type=simple
+User=your-user
+WorkingDirectory=/path/to/FalconEye
+Environment="PATH=/path/to/FalconEye/venv/bin"
+ExecStart=/path/to/FalconEye/venv/bin/gunicorn -w 4 -b 0.0.0.0:3001 --timeout 120 backend:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then:
+```bash
+sudo systemctl enable falconeye
+sudo systemctl start falconeye
+sudo systemctl status falconeye
+```
+
+### Using Nginx Reverse Proxy
+
+Example nginx configuration:
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### Environment Variables for Production
+
+```bash
+export FLASK_ENV=production
+export FALCONEYE_SECRET=$(openssl rand -hex 32)
+export CAM1_URL=http://your-camera-ip/jpg
+# ... other variables
+```
+
+## 📊 Performance Tuning
+
+### Model Selection
+
+- **Fastest**: `yolov8n.pt` - Best for live streams, lower accuracy
+- **Balanced**: `yolov8s.pt` - Recommended for most use cases
+- **Accurate**: `yolov8m.pt` or larger - Best for detection accuracy
+
+### Device Selection
+
+Set `DEVICE` environment variable:
+- `cuda` - NVIDIA GPU (fastest)
+- `mps` - Apple Silicon GPU (M1/M2/M3)
+- `cpu` - CPU only (slowest but universal)
+
+### Thread Configuration
+
+For optimal performance, set thread limits:
+
+```bash
+export OMP_NUM_THREADS=4
+export MKL_NUM_THREADS=4
+```
+
 ## 📞 Support
 
 - **Documentation**: See `docs/` directory
 - **Issues**: [GitHub Issues](https://github.com/Vivek9454/FalconEye/issues)
+- **Security**: See [SECURITY.md](SECURITY.md) for security best practices
 - **Setup Guides**: 
   - `ANDROID_SETUP.md` - Android app setup
   - `FIREBASE_SETUP_INSTRUCTIONS.md` - Firebase setup
   - `LOCAL_NOTIFICATIONS_SETUP.md` - Local notifications
+  - `SECURITY.md` - Security and secrets management
 
 ## 🎯 Project Status
 

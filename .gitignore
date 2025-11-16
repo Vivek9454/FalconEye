@@ -20,13 +20,27 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-.env
-.venv
-env/
 venv/
+venv_bak/
 ENV/
-env.bak/
-venv.bak/
+env/
+.venv
+
+# Sensitive configuration files
+config.py
+firebase_config.json
+firebase-service-account.json
+*.pem
+*.key
+*.crt
+.env
+.env.local
+.env.*.local
+
+# Cloudflare configs with credentials
+*-permanent-config.yml
+*cloudflare-config.yml
+*.cloudflared/
 
 # IDE
 .vscode/
@@ -34,111 +48,95 @@ venv.bak/
 *.swp
 *.swo
 *~
-
-# macOS
 .DS_Store
-.AppleDouble
-.LSOverride
-Icon
-._*
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-
-# Sensitive Configuration Files
-config.py
-firebase-service-account.json
-*.key
-*.pem
-*.crt
-*.p12
-*.mobileprovision
-
-# Cloudflare Tunnel
-cloudflared
-tunnel.json
-*.cert.pem
-
-# YOLO Models (large files)
-*.pt
-yolov*.pt
-
-# Clips and Media
-clips/
-faces/
-*.mp4
-*.avi
-*.mov
-*.jpg
-*.jpeg
-*.png
-*.gif
-test_image.jpg
-esp32_*.jpg
-
-# iOS
-ios/**/build/
-ios/**/.build/
-ios/**/DerivedData/
-ios/**/*.xcarchive
-ios/**/*.ipa
-ios/**/*.dSYM.zip
-ios/**/*.dSYM
-ios/**/xcuserdata/
-ios/**/*.xcworkspace/xcuserdata/
-ios/**/*.xcworkspacedata
-ios/**/UserInterfaceState.xcuserstate
-ios/**/project.xcworkspace/xcuserdata/
-ios/**/.swiftpm/xcode/package.xcworkspace/xcuserdata/
-ios/**/Pods/
-ios/**/Podfile.lock
 
 # Logs
 *.log
 backend_run.log
-error.log
-debug.log
+smart_start.log
 
-# Runtime files
-*.pid
-*.sock
+# Clips and media
+clips/
+*.mp4
+*.jpg
+*.jpeg
+*.png
+!static/*.png
+!static/*.ico
+!assets/*.png
+!assets/*.jpg
+!assets/*.svg
 
-# Backup files
-*.bak
-*.backup
-backend.py.bak
-*.yml.bak
-backend_backup.py
-backend_clean.py
+# Model files (too large for git)
+*.pt
+*.onnx
+*.pth
+yolov8*.pt
 
-# Temporary files
-*.tmp
-*.temp
-cookies.txt
+# Face database
+faces/faces_db.json
+faces/images/
 
-# Test files (optional - you might want to keep some)
+# Test files
 test_*.py
 debug_*.py
+*_test.py
 
-# Node modules (if any)
+# Build artifacts
+build/
+*.bak
+*.backup
+
+# Node
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
 
-# Environment variables
-.env.local
-.env.development
-.env.test
-.env.production
+# React
+falconeye-react-frontend/dist/
+falconeye-react-frontend/.vite/
 
-# Firebase
-.firebase/
-firebase-debug.log
-firebase-debug.*.log
+# Android
+android_app/.gradle/
+android_app/app/build/
+android_app/build/
+android_app/local.properties
+*.apk
+*.aab
 
-# Certificates and keys
-*.p8
-*.cer
-*.certSigningRequest
+# iOS
+ios/Pods/
+ios/build/
+ios/*.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+ios/.swiftpm/
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+pubspec.lock
+
+# Network scan results
+network_devices.json
+
+# Cookies and temporary files
+cookies.txt
+*.tmp
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+

@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  falconeye:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base  # Use 'production' for production build
+    container_name: falconeye-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_PORT=3001
+      - FALCONEYE_SECRET=${FALCONEYE_SECRET:-dev-secret-change-me}
+      - CAM1_URL=${CAM1_URL:-http://host.docker.internal:8080/jpg}
+      - CAM2_URL=${CAM2_URL:-}
+      - ESP_PAN_BASE_URL=${ESP_PAN_BASE_URL:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-falconeye-clips}
+      - FCM_SERVER_KEY=${FCM_SERVER_KEY:-}
+      - DEVICE=${DEVICE:-cpu}
+      - DETECT_MODEL_NAME=${DETECT_MODEL_NAME:-yolov8s.pt}
+      - LIVE_MODEL_NAME=${LIVE_MODEL_NAME:-yolov8n.pt}
+    volumes:
+      - ./clips:/app/clips
+      - ./faces:/app/faces
+      - ./vision_settings.json:/app/vision_settings.json
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - falconeye-network
+    # For GPU support (uncomment if you have NVIDIA GPU)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # Optional: Add nginx reverse proxy for production
+  # nginx:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf
+  #     - ./ssl:/etc/nginx/ssl
+  #   depends_on:
+  #     - falconeye
+  #   networks:
+  #     - falconeye-network
+
+networks:
+  falconeye-network:
+    driver: bridge
+
