@@ -77,10 +77,12 @@ yolov8*.pt
 faces/faces_db.json
 faces/images/
 
-# Test files
+# Test files (keep test framework, ignore debug scripts)
 test_*.py
 debug_*.py
 *_test.py
+!tests/
+!tests/**/*.py
 
 # Build artifacts
 build/

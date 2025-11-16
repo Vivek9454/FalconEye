@@ -1,11 +1,47 @@
 # 🚀 FalconEye - AI-Powered Home Security System
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.0.3-green.svg)](https://flask.palletsprojects.com/)
 [![YOLO](https://img.shields.io/badge/YOLO-8.3.0-red.svg)](https://ultralytics.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/Vivek9454/FalconEye/workflows/CI/badge.svg)](https://github.com/Vivek9454/FalconEye/actions)
 
 A comprehensive, AI-powered home security system with real-time object detection, mobile apps, and cloud integration.
+
+## ⚡ Quick Start (5-Minute Demo)
+
+**Requirements**: Python 3.11+, 8GB RAM (CPU) or GPU with 4GB VRAM recommended
+
+```bash
+# 1. Clone and setup
+git clone https://github.com/Vivek9454/FalconEye.git
+cd FalconEye
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# 2. Download models (or they'll auto-download on first run)
+./scripts/download_models.sh yolov8n.pt
+
+# 3. Run quick demo on test image
+python run_demo.py --image samples/test.jpg
+
+# 4. Start full backend (optional)
+python backend.py
+```
+
+**Expected runtime**: 
+- Model download: ~10 seconds (yolov8n.pt, 6MB)
+- Demo detection: ~2-5 seconds (CPU) or ~0.5 seconds (GPU)
+- Full backend startup: ~30-60 seconds
+
+**Docker Quick Demo**:
+```bash
+docker build -t falconeye-demo .
+docker run -p 3001:3001 falconeye-demo
+```
+
+See [Full Installation Guide](#-installation) for detailed setup.
 
 ## ✨ Features
 
@@ -63,18 +99,35 @@ A comprehensive, AI-powered home security system with real-time object detection
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Requirements
 
-#### System Requirements
-- **Python**: 3.8 or higher (3.11+ recommended)
-- **Node.js**: 18+ (for frontend, optional)
-- **RAM**: Minimum 4GB (8GB+ recommended for GPU)
+**System Requirements**:
+- **Python**: 3.11+ (3.8+ supported but 3.11+ recommended)
+- **RAM**: 8GB minimum (CPU) or 4GB VRAM (GPU)
 - **Storage**: ~5GB free space (for models and clips)
-- **Camera**: ESP32 camera or compatible IP camera
+- **Camera**: ESP32 camera or compatible IP camera (optional for demo)
 - **GPU** (optional but recommended):
-  - NVIDIA GPU with CUDA support (for faster inference)
+  - NVIDIA GPU with CUDA support (10x faster inference)
   - Apple Silicon (M1/M2/M3) with MPS support
-  - CPU mode available but slower
+  - CPU mode available but slower (~100-800ms per frame)
+
+**Model Sizes & Download**:
+- `yolov8n.pt`: 6MB - Fastest, good for demos (~10ms GPU, ~100ms CPU)
+- `yolov8s.pt`: 22MB - Recommended balance (~15ms GPU, ~200ms CPU)
+- `yolov8m.pt`: 52MB - More accurate (~25ms GPU, ~400ms CPU)
+- `yolov8l.pt`: 87MB - High accuracy (~40ms GPU, ~600ms CPU)
+- `yolov8x.pt`: 136MB - Maximum accuracy (~60ms GPU, ~800ms CPU)
+
+**Download models**:
+```bash
+# Download recommended models
+./scripts/download_models.sh
+
+# Or download specific model
+./scripts/download_models.sh yolov8n.pt
+```
+
+Models auto-download on first use if not present.
 
 #### Hardware Requirements by Model
 

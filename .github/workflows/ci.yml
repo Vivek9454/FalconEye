@@ -53,15 +53,21 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
       
-      - name: Run tests
+      - name: Create test directories
         run: |
-          # Create test directory structure
-          mkdir -p clips faces/images
-          # Run basic import test
-          python -c "import backend; print('Backend imports successfully')" || true
+          mkdir -p clips faces/images samples tests
+      
+      - name: Run smoke tests
+        run: |
+          pytest tests/test_smoke.py -v --tb=short
         env:
           FALCONEYE_SECRET: test-secret-key
           FLASK_ENV: test
+      
+      - name: Test demo script
+        run: |
+          # Test that demo script can at least parse arguments
+          python run_demo.py --help || true
 
   security:
     name: Security Scan
