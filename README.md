@@ -7,7 +7,7 @@
 [![CI](https://github.com/Vivek9454/FalconEye/workflows/CI/badge.svg)](https://github.com/Vivek9454/FalconEye/actions)
 
 <div align="center">
-  <img src="static/logo_dark.png" alt="FalconEye Logo" width="200"/>
+  <img src="f_dark.png" alt="FalconEye Logo" width="200"/>
   <h3>Real-time AI-powered home security system with object detection and face recognition</h3>
 </div>
 
