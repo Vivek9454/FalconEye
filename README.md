@@ -5,6 +5,7 @@
 [![YOLO](https://img.shields.io/badge/YOLO-8.3.0-red.svg)](https://ultralytics.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/Vivek9454/FalconEye/workflows/CI/badge.svg)](https://github.com/Vivek9454/FalconEye/actions)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 
 <div align="center">
   <img src="f_dark.png" alt="FalconEye Logo" width="200"/>
@@ -45,6 +46,8 @@ python backend.py
 docker build -t falconeye-demo .
 docker run -p 3001:3001 falconeye-demo
 ```
+
+**CI/CD**: Automated testing via [GitHub Actions](.github/workflows/ci.yml) | **Docker**: [Dockerfile](Dockerfile) and [docker-compose.yml](docker-compose.yml) included
 
 See [Full Installation Guide](#installation) for detailed setup.
 
