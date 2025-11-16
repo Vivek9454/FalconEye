@@ -587,6 +587,32 @@ export MKL_NUM_THREADS=4
 
 ## Project Status
 
+- **Core Features**: Complete and production-ready
+- **Mobile Apps**: iOS and Android available
+- **Cloud Integration**: AWS S3 and Firebase configured
+- **Documentation**: Comprehensive guides available
+- **Testing**: Smoke tests and CI/CD pipeline
+- **Security**: Environment-based configuration, security headers, input validation
+
+## Roadmap
+
+- [ ] Enhanced face recognition accuracy
+- [ ] Multi-language support
+- [ ] Advanced analytics dashboard
+- [ ] Integration with smart home systems
+- [ ] Mobile app improvements
+- [ ] Performance optimizations
+
+## Related Documentation
+
+- [Security Guide](SECURITY.md) - Security best practices and secrets management
+- [Production Deployment](PRODUCTION.md) - Production deployment guide
+- [Contributing](CONTRIBUTING.md) - How to contribute
+- [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
+- [Changelog](CHANGELOG.md) - Version history
+
+## Project Status
+
 - **Core Features**: Complete
 - **Mobile Apps**: iOS and Android available
 - **Cloud Integration**: AWS S3 and Firebase configured
