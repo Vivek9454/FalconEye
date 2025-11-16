@@ -611,13 +611,6 @@ export MKL_NUM_THREADS=4
 - [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
 - [Changelog](CHANGELOG.md) - Version history
 
-## Project Status
-
-- **Core Features**: Complete
-- **Mobile Apps**: iOS and Android available
-- **Cloud Integration**: AWS S3 and Firebase configured
-- **Documentation**: Comprehensive guides available
-
 ---
 
 **Built for home security**
