@@ -1,4 +1,4 @@
-# 🚀 FalconEye - AI-Powered Home Security System
+# FalconEye - AI-Powered Home Security System
 
 [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.0.3-green.svg)](https://flask.palletsprojects.com/)
@@ -7,13 +7,13 @@
 [![CI](https://github.com/Vivek9454/FalconEye/workflows/CI/badge.svg)](https://github.com/Vivek9454/FalconEye/actions)
 
 <div align="center">
-  <img src="docs/screenshots/dashboard-overview.png" alt="FalconEye Dashboard" width="800"/>
-  <p><em>Real-time AI-powered home security system with object detection and face recognition</em></p>
+  <img src="static/logo_dark.png" alt="FalconEye Logo" width="200"/>
+  <h3>Real-time AI-powered home security system with object detection and face recognition</h3>
 </div>
 
 A comprehensive, AI-powered home security system with real-time object detection, mobile apps, and cloud integration.
 
-## ⚡ Quick Start (5-Minute Demo)
+## Quick Start (5-Minute Demo)
 
 **Requirements**: Python 3.11+, 8GB RAM (CPU) or GPU with 4GB VRAM recommended
 
@@ -46,9 +46,9 @@ docker build -t falconeye-demo .
 docker run -p 3001:3001 falconeye-demo
 ```
 
-See [Full Installation Guide](#-installation) for detailed setup.
+See [Full Installation Guide](#installation) for detailed setup.
 
-## 📸 Screenshots
+## Screenshots
 
 ### Web Dashboard
 ![Dashboard Overview](docs/screenshots/dashboard-overview.png)
@@ -92,9 +92,9 @@ See [Full Installation Guide](#-installation) for detailed setup.
 
 See [docs/screenshots/](docs/screenshots/) for more screenshots.
 
-## ✨ Features
+## Features
 
-### 🎯 Core Security Features
+### Core Security Features
 - **AI Object Detection**: YOLOv8-powered real-time detection with 90% false alarm reduction
 - **Smart Filtering**: Only detects home surveillance relevant objects (person, car, dog, etc.)
 - **High-Speed Capture**: 10 FPS frame capture from ESP32 camera
@@ -102,7 +102,7 @@ See [docs/screenshots/](docs/screenshots/) for more screenshots.
 - **Push Notifications**: Real-time alerts via Firebase Cloud Messaging
 - **Cloud Storage**: AWS S3 integration for video clips
 
-### 📱 Mobile Optimizations
+### Mobile Optimizations
 - **Responsive Design**: Works perfectly on all screen sizes
 - **Touch Navigation**: Swipe between Live, Clips, Status tabs
 - **Bandwidth Optimization**: 50% less data usage on mobile
@@ -111,14 +111,14 @@ See [docs/screenshots/](docs/screenshots/) for more screenshots.
 - **Progressive Loading**: Images load with smooth transitions
 - **Dark Mode**: Automatic dark theme support
 
-### 🌐 Cloud & Access
+### Cloud & Access
 - **Permanent Tunnel**: Always-available cloud access via Cloudflare
 - **Custom Domain**: https://cam.falconeye.website
 - **SSL Security**: Encrypted connections
 - **Global CDN**: Fast access worldwide
 - **Mobile APIs**: Optimized endpoints for mobile apps
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ┌─────────────────┐
@@ -146,7 +146,7 @@ See [docs/screenshots/](docs/screenshots/) for more screenshots.
 └──────────┘
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Requirements
 
@@ -271,15 +271,15 @@ Models auto-download on first use if not present.
 ### First Run
 
 On first startup, the system will:
-1. ✅ Download YOLO models automatically (if not present)
-2. ✅ Detect available GPU/CPU device
-3. ✅ Test camera connectivity
-4. ✅ Initialize face recognition (if enabled)
-5. ✅ Start background detection loop
+1. Download YOLO models automatically (if not present)
+2. Detect available GPU/CPU device
+3. Test camera connectivity
+4. Initialize face recognition (if enabled)
+5. Start background detection loop
 
 **Expected startup time**: 30-60 seconds (depending on model download and device)
 
-## 📖 Configuration
+## Configuration
 
 ### Network Profiles
 Edit `backend.py` to configure your camera IPs:
@@ -325,7 +325,7 @@ Configure detection settings in `vision_settings.json`:
 ### Firebase Setup (Optional)
 See `FIREBASE_SETUP_INSTRUCTIONS.md` for detailed setup.
 
-## 📱 Mobile Apps
+## Mobile Apps
 
 ### iOS App
 - Located in `ios/FalconEye/`
@@ -338,7 +338,7 @@ See `FIREBASE_SETUP_INSTRUCTIONS.md` for detailed setup.
 - Built with Kotlin/Java
 - See `ANDROID_SETUP.md` for setup
 
-## 🔧 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /auth/login` - User login
@@ -361,11 +361,11 @@ See `FIREBASE_SETUP_INSTRUCTIONS.md` for detailed setup.
 - `GET /vision/settings` - Get vision settings
 - `POST /vision/settings` - Update vision settings
 
-## 🛠️ Development
+## Development
 
 ### Running Tests
 ```bash
-python test_backend.py
+pytest tests/test_smoke.py -v
 ```
 
 ### Code Structure
@@ -382,7 +382,7 @@ FalconEye/
 └── requirements.txt        # Python dependencies
 ```
 
-## 🔒 Security
+## Security
 
 - **Authentication**: Session-based authentication with secure password hashing
 - **HTTPS**: All communications encrypted via Cloudflare tunnel
@@ -392,31 +392,31 @@ FalconEye/
 - **Input Validation**: All user inputs validated and sanitized
 - **Secrets Management**: Environment variables for all sensitive data
 
-**⚠️ Important**: Never commit `config.py`, `.env`, or `firebase_config.json` to version control. See [SECURITY.md](SECURITY.md) for details.
+**Important**: Never commit `config.py`, `.env`, or `firebase_config.json` to version control. See [SECURITY.md](SECURITY.md) for details.
 
-## 📊 Performance
+## Performance
 
 - **Object Detection**: Real-time processing at 10 FPS
 - **Mobile Optimization**: 50% bandwidth reduction on mobile
 - **Cloud Storage**: Automatic upload with retry mechanism
 - **Caching**: Smart caching for images and static assets
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Ultralytics YOLO](https://ultralytics.com/) for object detection
 - [Flask](https://flask.palletsprojects.com/) for the web framework
 - [OpenCV](https://opencv.org/) for computer vision
 - [Cloudflare](https://www.cloudflare.com/) for tunnel service
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 ### Quick Start with Docker
 
@@ -453,7 +453,7 @@ docker run -d \
   falconeye:latest
 ```
 
-## 🚀 Production Deployment
+## Production Deployment
 
 ### Using Gunicorn (Recommended)
 
@@ -521,7 +521,7 @@ export CAM1_URL=http://your-camera-ip/jpg
 # ... other variables
 ```
 
-## 📊 Performance Tuning
+## Performance Tuning
 
 ### Model Selection
 
@@ -545,7 +545,7 @@ export OMP_NUM_THREADS=4
 export MKL_NUM_THREADS=4
 ```
 
-## 📞 Support
+## Support
 
 - **Documentation**: See `docs/` directory
 - **Issues**: [GitHub Issues](https://github.com/Vivek9454/FalconEye/issues)
@@ -556,14 +556,13 @@ export MKL_NUM_THREADS=4
   - `LOCAL_NOTIFICATIONS_SETUP.md` - Local notifications
   - `SECURITY.md` - Security and secrets management
 
-## 🎯 Project Status
+## Project Status
 
-✅ **Core Features**: Complete
-✅ **Mobile Apps**: iOS and Android available
-✅ **Cloud Integration**: AWS S3 and Firebase configured
-✅ **Documentation**: Comprehensive guides available
+- **Core Features**: Complete
+- **Mobile Apps**: iOS and Android available
+- **Cloud Integration**: AWS S3 and Firebase configured
+- **Documentation**: Comprehensive guides available
 
 ---
 
-**Built with ❤️ for home security**
-
+**Built for home security**
