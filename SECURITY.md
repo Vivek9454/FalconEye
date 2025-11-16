@@ -42,25 +42,57 @@ If you're currently using `config.py`, migrate to `.env`:
 
 ### Rotating Exposed Credentials
 
-If you've accidentally committed secrets:
+**CRITICAL**: If you've accidentally committed secrets, rotate them immediately!
 
 1. **Rotate all exposed credentials immediately:**
-   - AWS: Generate new access keys in IAM console
-   - Firebase: Regenerate server key in Firebase console
+   - AWS: Generate new access keys in IAM console and revoke old ones
+   - Firebase: Regenerate server key in Firebase console (Project Settings > Cloud Messaging)
    - Cloudflare: Regenerate tunnel credentials
+   - Any other services: Rotate all exposed keys/tokens
 
-2. **Remove from git history:**
+2. **Remove from git index (already done):**
    ```bash
-   # Use git-filter-repo or BFG Repo-Cleaner
+   git rm --cached firebase_config.json
+   git rm --cached config.py
+   echo "firebase_config.json" >> .gitignore
+   echo "config.py" >> .gitignore
+   git commit -m "Remove secrets from repository"
+   ```
+
+3. **Purge from git history (recommended for public repos):**
+   
+   **Option A: Using git-filter-repo (recommended)**
+   ```bash
+   pip install git-filter-repo
+   git filter-repo --path firebase_config.json --path config.py --invert-paths
+   git push origin --force --all
+   ```
+   
+   **Option B: Using BFG Repo-Cleaner**
+   ```bash
+   # Install BFG: brew install bfg (Mac) or download from https://rtyley.github.io/bfg-repo-cleaner/
+   bfg --delete-files firebase_config.json
+   bfg --delete-files config.py
+   git reflog expire --expire=now --all
+   git gc --prune=now --aggressive
+   git push origin --force --all
+   ```
+   
+   **Option C: Using git filter-branch (legacy)**
+   ```bash
    git filter-branch --force --index-filter \
      "git rm --cached --ignore-unmatch config.py firebase_config.json" \
      --prune-empty --tag-name-filter cat -- --all
-   ```
-
-3. **Force push (coordinate with team):**
-   ```bash
    git push origin --force --all
    ```
+
+4. **Verify removal:**
+   ```bash
+   git log --all --full-history -- firebase_config.json
+   # Should return no results
+   ```
+
+**Warning**: Force pushing rewrites history. Coordinate with team members and ensure everyone pulls the updated history.
 
 ### Environment Variables
 
